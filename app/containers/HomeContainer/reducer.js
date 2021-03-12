@@ -8,26 +8,27 @@ import { createActions } from 'reduxsauce';
 import get from 'lodash/get';
 
 export const { Types: homeContainerTypes, Creators: homeContainerCreators } = createActions({
-  requestGetGithubRepos: ['repoName'],
-  successGetGithubRepos: ['data'],
-  failureGetGithubRepos: ['error'],
-  clearGithubRepos: []
+  requestGetItunesSongs: ['artistName'],
+  successGetItunesSongs: ['data'],
+  failureGetItunesSongs: ['error'],
+  clearItunesSongs: []
 });
-export const initialState = { repoName: null, reposData: [], reposError: null };
+
+export const initialState = { artistName: null, songsData: [], songsError: null };
 
 /* eslint-disable default-case, no-param-reassign */
 export const homeContainerReducer = (state = initialState, action) =>
   produce(state, draft => {
     switch (action.type) {
-      case homeContainerTypes.REQUEST_GET_GITHUB_REPOS:
-        draft.repoName = action.repoName;
+      case homeContainerTypes.REQUEST_GET_ITUNES_SONGS:
+        draft.artistName = action.artistName;
         break;
-      case homeContainerTypes.CLEAR_GITHUB_REPOS:
+      case homeContainerTypes.CLEAR_ITUNES_SONGS:
         return initialState;
-      case homeContainerTypes.SUCCESS_GET_GITHUB_REPOS:
-        draft.reposData = action.data;
+      case homeContainerTypes.SUCCESS_GET_ITUNES_SONGS:
+        draft.songsData = action.data;
         break;
-      case homeContainerTypes.FAILURE_GET_GITHUB_REPOS:
+      case homeContainerTypes.FAILURE_GET_ITUNES_SONGS:
         draft.reposError = get(action.error, 'message', 'something_went_wrong');
         break;
     }

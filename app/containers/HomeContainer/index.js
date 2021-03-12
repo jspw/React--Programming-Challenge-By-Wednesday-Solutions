@@ -13,7 +13,7 @@ import { useHistory } from 'react-router-dom';
 import T from '@components/T';
 import Clickable from '@components/Clickable';
 import { useInjectSaga } from 'utils/injectSaga';
-import { selectHomeContainer, selectReposData, selectReposError, selectRepoName } from './selectors';
+import { selectHomeContainer, selectSongsData, selectSongsError, selectArtistName } from './selectors';
 import { homeContainerCreators } from './reducer';
 import saga from './saga';
 
@@ -42,12 +42,12 @@ const RightContent = styled.div`
   align-self: flex-end;
 `;
 export function HomeContainer({
-  dispatchGithubRepos,
-  dispatchClearGithubRepos,
+  dispatchItunesSongs,
+  dispatchClearItunesSongs,
   intl,
-  reposData = {},
+  songsData = {},
   reposError = null,
-  repoName,
+  artistName,
   maxwidth,
   padding
 }) {
@@ -55,15 +55,16 @@ export function HomeContainer({
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    const loaded = get(reposData, 'items', null) || reposError;
+    const loaded = get(songsData, 'results', null) || reposError;
+    console.log('songsData', songsData);
     if (loading && loaded) {
       setLoading(false);
     }
-  }, [reposData]);
+  }, [songsData]);
 
   useEffect(() => {
-    if (repoName && !reposData?.items?.length) {
-      dispatchGithubRepos(repoName);
+    if (artistName && !songsData?.results?.length) {
+      dispatchItunesSongs(artistName);
       setLoading(true);
     }
   }, []);
@@ -72,36 +73,53 @@ export function HomeContainer({
 
   const handleOnChange = rName => {
     if (!isEmpty(rName)) {
-      dispatchGithubRepos(rName);
+      dispatchItunesSongs(rName);
       setLoading(true);
     } else {
-      dispatchClearGithubRepos();
+      dispatchClearItunesSongs();
     }
   };
   const debouncedHandleOnChange = debounce(handleOnChange, 200);
 
-  const renderRepoList = () => {
-    const items = get(reposData, 'items', []);
-    const totalCount = get(reposData, 'totalCount', 0);
+  const renderSongList = () => {
+    const results = get(songsData, 'results', []);
+    console.log('Songs data', songsData);
+    const resultCount = get(songsData, 'resultCount', 0);
     return (
-      (items.length !== 0 || loading) && (
+      (results.length !== 0 || loading) && (
         <CustomCard>
           <Skeleton loading={loading} active>
-            {repoName && (
+            {artistName && (
               <div>
-                <T id="search_query" values={{ repoName }} />
+                <b> Artist Query : </b>
+                <a style={{ color: 'blue' }} href={results[1].artistViewUrl}>
+                  {results[1].artistName}
+                </a>
               </div>
             )}
-            {totalCount !== 0 && (
+            {resultCount !== 0 && (
               <div>
-                <T id="matching_repos" values={{ totalCount }} />
+                <T id="matching_repos" values={{ totalCount: resultCount }} />
               </div>
             )}
-            {items.map((item, index) => (
+            {results.map((item, index) => (
               <CustomCard key={index}>
-                <T id="repository_name" values={{ name: item.name }} />
-                <T id="repository_full_name" values={{ fullName: item.fullName }} />
-                <T id="repository_stars" values={{ stars: item.stargazersCount }} />
+                <T id="song_name" values={{ songName: item.trackName }} />
+                <T id="song_full_name" values={{ fullName: item.collectionName }} />
+                <T id="primary_genre_name" values={{ primaryGenreName: item.primaryGenreName }} />
+                <T id="track_price" values={{ trackPrice: item.trackPrice }} />
+                <T id="release_date" values={{ releaseDate: new Date(item.releaseDate).toDateString() }} />
+                <T
+                  id="track_time"
+                  values={{
+                    trackTime:
+                      Math.round(item.trackTimeMillis / 1000 / 60) +
+                      ' min' +
+                      ' ' +
+                      Math.round((item.trackTimeMillis / 1000) % 60) +
+                      ' sec'
+                  }}
+                />
               </CustomCard>
             ))}
           </Skeleton>
@@ -112,9 +130,10 @@ export function HomeContainer({
   const renderErrorState = () => {
     let repoError;
     if (reposError) {
+      console.log(repoError);
       repoError = reposError;
-    } else if (!get(reposData, 'totalCount', 0)) {
-      repoError = 'respo_search_default';
+    } else if (!get(songsData, 'resultCount', 0)) {
+      repoError = 'repo_search_default';
     }
     return (
       !loading &&
@@ -138,29 +157,29 @@ export function HomeContainer({
         <T marginBottom={10} id="get_repo_details" />
         <Search
           data-testid="search-bar"
-          defaultValue={repoName}
+          defaultValue={artistName}
           type="text"
           onChange={evt => debouncedHandleOnChange(evt.target.value)}
           onSearch={searchText => debouncedHandleOnChange(searchText)}
         />
       </CustomCard>
-      {renderRepoList()}
+      {renderSongList()}
       {renderErrorState()}
     </Container>
   );
 }
 
 HomeContainer.propTypes = {
-  dispatchGithubRepos: PropTypes.func,
-  dispatchClearGithubRepos: PropTypes.func,
+  dispatchItunesSongs: PropTypes.func,
+  dispatchClearItunesSongs: PropTypes.func,
   intl: PropTypes.object,
-  reposData: PropTypes.shape({
-    totalCount: PropTypes.number,
+  songsData: PropTypes.shape({
+    resultCount: PropTypes.number,
     incompleteResults: PropTypes.bool,
-    items: PropTypes.array
+    results: PropTypes.array
   }),
   reposError: PropTypes.object,
-  repoName: PropTypes.string,
+  artistName: PropTypes.string,
   history: PropTypes.object,
   maxwidth: PropTypes.number,
   padding: PropTypes.number
@@ -173,16 +192,16 @@ HomeContainer.defaultProps = {
 
 const mapStateToProps = createStructuredSelector({
   homeContainer: selectHomeContainer(),
-  reposData: selectReposData(),
-  reposError: selectReposError(),
-  repoName: selectRepoName()
+  songsData: selectSongsData(),
+  reposError: selectSongsError(),
+  artistName: selectArtistName()
 });
 
 function mapDispatchToProps(dispatch) {
-  const { requestGetGithubRepos, clearGithubRepos } = homeContainerCreators;
+  const { requestGetItunesSongs, clearItunesSongs } = homeContainerCreators;
   return {
-    dispatchGithubRepos: repoName => dispatch(requestGetGithubRepos(repoName)),
-    dispatchClearGithubRepos: () => dispatch(clearGithubRepos())
+    dispatchItunesSongs: artistName => dispatch(requestGetItunesSongs(artistName)),
+    dispatchClearItunesSongs: () => dispatch(clearItunesSongs())
   };
 }
 
